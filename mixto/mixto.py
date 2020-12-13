@@ -468,17 +468,55 @@ class Mixto:
             "delete", "/api/entry/{}/description".format(entry_id), None, False
         )
 
-    def commentsGet(self):
-        # TODO
-        pass
+    def commentsGet(self, entry_id: str, commit_id: str) -> List[Description]:
+        """Get all comments
 
-    def commentsAdd(self):
-        # TODO
-        pass
+        Args:
+            entry_id (str): A valid entry id
+            commit_id (str): A valid commit id
 
-    def commentsDelete(self):
-        # TODO
-        pass
+        Returns:
+            List[Description]: An array of comments
+        """
+        r = self._make_request(
+            "get", "/api/entry/{}/commit/{}/comment".format(entry_id, commit_id)
+        )
+        return [Description(**i) for i in r]
+
+    def commentsAdd(self, entry_id: str, commit_id: str, text: str) -> Description:
+        """Add a comment to a commit
+
+        Args:
+            entry_id (str): A valid entry id
+            commit_id (str): A valid commit id
+            text (str): Comment text
+
+        Returns:
+            Description: Added comment object
+        """
+        body = {"text": text}
+        r = self._make_request(
+            "post", "/api/entry/{}/commit/{}/comment".format(entry_id, commit_id), body
+        )
+        return Description(**r)
+
+    def commentsDelete(self, entry_id: str, commit_id: str) -> None:
+        """Delete a comment
+
+        Args:
+            entry_id (str): A valid entry id
+            commit_id (str): A valid commit id
+
+        Returns:
+            None: None
+        """
+        r = self._make_request(
+            "delete",
+            "/api/entry/{}/commit/{}/comment".format(entry_id, commit_id),
+            None,
+            False,
+        )
+        return None
 
     def chatGet(self):
         # TODO

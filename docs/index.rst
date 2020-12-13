@@ -3,8 +3,29 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to mixto's documentation!
-=================================
+Mixto
+"""""
+.. automodule:: mixto
+    :members:
+    :undoc-members:
+
+Types
+"""""
+.. automodule:: mixto.types.entry
+    :members:
+    :undoc-members:
+
+Types
+"""""
+.. automodule:: mixto.types.misc
+    :members:
+    :undoc-members:
+
+Types
+"""""
+.. automodule:: mixto.types.user
+    :members:
+    :undoc-members:
 
 .. toctree::
    :maxdepth: 2
