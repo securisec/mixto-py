@@ -1,13 +1,15 @@
 import sys
+
+from typing_extensions import Literal
 from mixto.types.entry import Commit, Description, Entry
-from mixto.types.misc import Config, NoticeTypes
+from mixto.types.misc import CommitTypes, Config, NoticeTypes
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 from urllib.parse import urljoin
 from pathlib import Path
 from json import dumps, loads
 from subprocess import getoutput
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 from .exceptions import BadResponse
 from .types.user import Settings, UserInfo, Version
 
@@ -15,9 +17,10 @@ from .types.user import Settings, UserInfo, Version
 class Mixto:
     def __init__(self, host: str = None, api_key: str = None) -> None:
         super().__init__()
-        self.host = host
-        self.api_key = api_key
-        self.status = None
+        self.host: Optional[str] = host
+        self.api_key: Optional[str] = api_key
+        self.status: int = 0
+        self.commit_type: CommitTypes = "script"
 
         if self.host == None or self.api_key == None:
             try:
@@ -30,14 +33,18 @@ class Mixto:
                 print("Cannot read Mixto config")
 
     def _make_request(
-        self, method: str, uri: str, body: Dict[str, str] = {}, isJson: bool = True
-    ) -> Union[Dict[str, Any], None]:
-        url = urljoin(self.host, uri)
+        self,
+        method: str,
+        uri: str,
+        body: Union[Dict[str, Any], None] = {},
+        isJson: bool = True,
+    ) -> Any:
+        url = urljoin(str(self.host), uri)
         req = Request(
             method=method.upper(),
             url=url,
             data=dumps(body).encode(),
-            headers={"x-api-key": self.api_key},
+            headers={"x-api-key": str(self.api_key)},
         )
         if body:
             req.add_header("Content-Type", "application/json")
@@ -48,7 +55,7 @@ class Mixto:
             if self.status > 300:
                 raise BadResponse(self.status, res)
             if isJson:
-                return loads(body)
+                return loads(str(body))
             else:
                 return body
         except HTTPError as e:
@@ -138,7 +145,7 @@ class Mixto:
             Dict[str, str]: Updated user response
         """
         kwargs["user_id"] = user_id
-        return self._make_request("post", "post", "/api/admin/users", kwargs)
+        return self._make_request("post", "/api/admin/users", kwargs)
 
     def adminGetConfigSlack(self) -> Config:
         """Get Slack config options
@@ -305,7 +312,7 @@ class Mixto:
             Commit: The commit created
         """
         kwargs["title"] = title
-        kwargs["type"] = "dump"
+        kwargs["type"] = self.commit_type
         kwargs["data"] = data
         r = self._make_request("post", "/api/entry/{}/commit".format(entry_id), kwargs)
         return Commit(**r)
@@ -338,7 +345,7 @@ class Mixto:
         with open(path, "r") as f:
             data = f.read()
             file_name = Path(path).parts[-1]
-            body = {"data": data, "title": file_name, "type": "script"}
+            body = {"data": data, "title": file_name, "type": self.commit_type}
             r = self._make_request(
                 "post", "/api/entry/{}/commit".format(entry_id), body
             )

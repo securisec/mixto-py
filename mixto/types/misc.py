@@ -11,3 +11,5 @@ class Config(BaseModel):
 
 
 NoticeTypes = Literal["info", "done", "high", "medium", "low", "default"]
+
+CommitTypes = Literal["dump", "script", "tool", "stdout"]
