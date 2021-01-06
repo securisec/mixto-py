@@ -7,13 +7,19 @@ class UserInfo(BaseModel):
     username: Optional[str]
     avatar: Optional[str]
     api_key: Optional[str] = None
+    admin: Optional[bool]
+    disabled: Optional[bool]
 
 
 class Version(BaseModel):
-    build_date: datetime
-    git_commit: Optional[str]
-    version: Optional[str]
+    BuildDate: datetime
+    GitCommit: datetime
+    Debug: Optional[bool]
+    Production: Optional[bool]
+    Version: Optional[str]
 
 
 class Settings(BaseModel):
     dark_theme: Optional[bool]
+    show_timestamp: Optional[bool]
+    workspace: Optional[str]

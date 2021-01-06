@@ -31,6 +31,7 @@ class Commit(BaseModel):
     title: Optional[str]
     data: Optional[str]
     marked: Optional[bool]
+    locked: Optional[bool]
     time_created: Optional[int]
     time_updated: Optional[int]
     username: Optional[str]

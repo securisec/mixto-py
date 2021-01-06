@@ -2,16 +2,18 @@ import sys
 
 from typing_extensions import Literal
 from mixto.types.entry import Commit, Description, Entry
-from mixto.types.misc import CommitTypes, Config, NoticeTypes
+from mixto.types.misc import CommitTypes, Config, NoticeTypes, Workspace
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlencode
 from pathlib import Path
 from json import dumps, loads
 from subprocess import getoutput
 from typing import Any, Dict, List, Optional, Union
 from .exceptions import BadResponse
 from .types.user import Settings, UserInfo, Version
+
+from .__version__ import __version__
 
 
 class Mixto:
@@ -38,13 +40,20 @@ class Mixto:
         uri: str,
         body: Union[Dict[str, Any], None] = {},
         isJson: bool = True,
+        queryParams: dict = {},
     ) -> Any:
         url = urljoin(str(self.host), uri)
+        q = ""
+        if queryParams:
+            q = "?" + urlencode(queryParams)
         req = Request(
             method=method.upper(),
-            url=url,
+            url=url + q,
             data=dumps(body).encode(),
-            headers={"x-api-key": str(self.api_key)},
+            headers={
+                "x-api-key": str(self.api_key),
+                "user-agent": "mixto-py-{}".format(__version__),
+            },
         )
         if body:
             req.add_header("Content-Type", "application/json")
@@ -78,13 +87,14 @@ class Mixto:
         """
         return self._make_request("get", "/api/misc/categories")
 
-    def miscGetWorkspaces(self) -> List[str]:
+    def miscGetWorkspaces(self) -> List[Workspace]:
         """Get a list of available workspaces
 
         Returns:
             List[str]: List of workspaces
         """
-        return self._make_request("get", "/api/misc/workspaces")
+        r = self._make_request("get", "/api/misc/workspaces")
+        return [Workspace(**e) for e in r]
 
     def userInfo(self) -> UserInfo:
         """Get user info
@@ -153,7 +163,7 @@ class Mixto:
         Returns:
             Config: Config options
         """
-        r = self._make_request("get", "/admin/config/slack")
+        r = self._make_request("get", "/api/admin/config/slack")
         return Config(**r)
 
     def adminGetConfigDiscord(self) -> Config:
@@ -162,7 +172,7 @@ class Mixto:
         Returns:
             Config: Config options
         """
-        r = self._make_request("get", "/admin/config/discord")
+        r = self._make_request("get", "/api/admin/config/discord")
         return Config(**r)
 
     def adminSetConfigSlack(self, **kwargs) -> None:
@@ -170,7 +180,7 @@ class Mixto:
 
         Args:
             enable (bool): Enable Slack threads
-            channel (str): Slack channel to post on
+            workspaces (dict): Key is the workspace name and value is the channel
             token (str): Slack token with the valid oauth permissions
 
         Returns:
@@ -183,7 +193,7 @@ class Mixto:
 
         Args:
             enable (bool): Enable Discord threads
-            webhook (str): Discord channel webhook
+            workspaces (dict): Key is the workspace name and value is the webhook
 
         Returns:
             None: None
@@ -269,7 +279,9 @@ class Mixto:
         Returns:
             Entry: An entry
         """
-        r = self._make_request("get", "/api/entry/{}".format(entry_id))
+        r = self._make_request(
+            "get", "/api/entry/{}".format(entry_id), queryParams={"all": "true"}
+        )
         return Entry(**r)
 
     def entryUpdate(self, entry_id: str, **kwargs) -> Entry:
@@ -389,6 +401,7 @@ class Mixto:
             commit_id (str): A valid commit id
             title (str): Commit title
             marked (bool): Mark a commit
+            locked (bool): Lock a commit
             meta (dict): Meta options
 
         Returns:
@@ -411,6 +424,23 @@ class Mixto:
             Commit: The updated commit
         """
         body = {"marked": mark}
+        r = self._make_request(
+            "post", "/api/entry/{}/commit/{}".format(entry_id, commit_id), body
+        )
+        return Commit(**r)
+
+    def commitLock(self, entry_id: str, commit_id: str, lock: bool) -> Commit:
+        """Lock/Unlock a commit
+
+        Args:
+            entry_id (str): A valid entry id
+            commit_id (str): A valid commit id
+            locked (bool): Lock a commit
+
+        Returns:
+            Commit: The updated commit
+        """
+        body = {"locked": lock}
         r = self._make_request(
             "post", "/api/entry/{}/commit/{}".format(entry_id, commit_id), body
         )
@@ -527,12 +557,12 @@ class Mixto:
 
     def chatGet(self):
         # TODO
-        pass
+        raise NotImplemented
 
     def chatAdd(self):
         # TODO
-        pass
+        raise NotImplemented
 
     def chatDelete(self):
         # TODO
-        pass
+        raise NotImplemented
