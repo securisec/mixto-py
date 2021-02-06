@@ -3,6 +3,17 @@ from uuid import UUID
 from pydantic import BaseModel
 
 
+class Note(BaseModel):
+    text: Optional[str]
+    title: Optional[str]
+    notes_id: Optional[str]
+    entry_id: Optional[str]
+    username: Optional[str]
+    avatar: Optional[str]
+    time_created: Optional[int]
+    time_updated: Optional[int]
+
+
 class Description(BaseModel):
     text: Optional[str]
     entry_id: Optional[str]

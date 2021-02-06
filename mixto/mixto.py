@@ -1,7 +1,7 @@
 import sys
 
 from typing_extensions import Literal
-from mixto.types.entry import Commit, Description, Entry
+from mixto.types.entry import Commit, Description, Entry, Note
 from mixto.types.misc import CommitTypes, Config, NoticeTypes, Workspace
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
@@ -552,6 +552,68 @@ class Mixto:
             "/api/entry/{}/commit/{}/comment".format(entry_id, commit_id),
             None,
             False,
+        )
+        return None
+
+    def notesGet(self, entry_id: str) -> List[Note]:
+        """Get an array of all user notes
+
+        Args:
+            entry_id (str): A valid entry ID
+
+        Returns:
+            List[Note]: List of notes
+        """
+        r = self._make_request("get", "/api/entry/{}/notes".format(entry_id), None)
+        return [Note(**i) for i in r]
+
+    def notesDelete(self, entry_id: str, notes_id: str) -> None:
+        """Delete a note
+
+        Args:
+            entry_id (str): A valid entry id
+            notes_id (str): A valid note id
+
+        Returns:
+            None: None
+        """
+        r = self._make_request(
+            "delete", "/api/entry/{}/notes/{}".format(entry_id, notes_id), None, False
+        )
+        return None
+
+    def notesAdd(self, entry_id: str, text: str, title: str) -> None:
+        """Add a new note to an entry
+
+        Args:
+            entry_id (str): A valid entry id
+            text (str): Note text. Min 2, max 1000
+            title (str): Note title. Mix 2, max 80
+
+        Returns:
+            None: None
+        """
+        body = {text: text, title: title}
+        r = self._make_request(
+            "post", "/api/entry/{}/notes".format(entry_id), body, False
+        )
+        return None
+
+    def notesUpdate(self, entry_id: str, notes_id: str, text: str, title: str) -> None:
+        """Update an existing note
+
+        Args:
+            entry_id (str): A valid entry id
+            notes_id (str): A valid notes id
+            text (str): Updated note title
+            title (str): Updated note text
+
+        Returns:
+            None: None
+        """
+        body = {text: text, title: title}
+        r = self._make_request(
+            "post", "/api/entry/{}/notes/{}".format(entry_id, notes_id), body, False
         )
         return None
 
