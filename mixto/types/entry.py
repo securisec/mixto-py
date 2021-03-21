@@ -64,3 +64,4 @@ class Entry(BaseModel):
     commits: List[Commit]
     description: Optional[Description]
     notice: Optional[Description]
+    notes: Optional[List[Note]]

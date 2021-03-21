@@ -593,7 +593,7 @@ class Mixto:
         Returns:
             None: None
         """
-        body = {text: text, title: title}
+        body = {'text': text, 'title': title}
         r = self._make_request(
             "post", "/api/entry/{}/notes".format(entry_id), body, False
         )
