@@ -1,4 +1,5 @@
 import sys
+from requests import request
 
 from mixto.types.entry import (
     Activity,
@@ -18,11 +19,10 @@ from mixto.types.misc import (
     Workspace,
     Version,
 )
-from urllib.request import Request, urlopen
 from urllib.error import HTTPError
-from urllib.parse import urljoin, urlencode
+from urllib.parse import urljoin
 from pathlib import Path
-from json import dumps, loads
+from json import loads
 from subprocess import getoutput
 from typing import Any, Dict, List, Optional, Union
 from .exceptions import BadResponse
@@ -34,13 +34,11 @@ from .__version__ import __version__
 
 
 class Mixto:
-    def __init__(
-        self, host: str = None, api_key: str = None, workspace: str = None
-    ) -> None:
+    def __init__(self, workspace: str, host: str = None, api_key: str = None) -> None:
         super().__init__()
         self.host: Optional[str] = host
         self.api_key: Optional[str] = api_key
-        self.workspace: Union[str, None] = workspace
+        self.workspace = workspace
         self.status: int = 0
         self.commit_type: CommitTypes = "script"
 
@@ -58,12 +56,6 @@ class Mixto:
             except:
                 print("Cannot read Mixto config")
 
-    @property
-    def _workspace(self):
-        if self.workspace == None:
-            raise Exception("No workspace set")
-        return self.workspace
-
     def _make_request(
         self,
         method: str,
@@ -73,28 +65,23 @@ class Mixto:
         queryParams: dict = {},
     ) -> Any:
         url = urljoin(str(self.host), uri)
-        q = ""
-        if queryParams:
-            q = "?" + urlencode(queryParams)
-        req = Request(
-            method=method.upper(),
-            url=url + q,
-            data=dumps(body).encode(),
-            headers={
-                "x-api-key": str(self.api_key),
-                "user-agent": "mixto-py-{}".format(__version__),
-            },
-        )
+        headers = {
+            "x-api-key": str(self.api_key),
+            "user-agent": "mixto-py-{}".format(__version__),
+        }
         if body:
-            req.add_header("Content-Type", "application/json")
+            headers["Content-Type"] = "application/json"
+
         try:
-            res = urlopen(req)
-            body = res.read()
-            self.status = res.getcode()
+            res = request(
+                method.upper(), url, params=queryParams, headers=headers, data=body
+            )
+
+            self.status = res.status_code
             if self.status > 300:
                 raise BadResponse(self.status, res)
             if isJson:
-                return loads(str(body.decode()))
+                return res.json()
             else:
                 return body
         except HTTPError as e:
@@ -142,7 +129,7 @@ class Mixto:
         Returns:
             List[Entry]: List of entries for a workspace
         """
-        r = self._make_request("get", f"/api/misc/workspaces/{self._workspace}")
+        r = self._make_request("get", f"/api/misc/workspaces/{self.workspace}")
         return parse_obj_as(List[Entry], r)
 
     def user_info(self) -> User:
@@ -216,7 +203,7 @@ class Mixto:
             List[UserStats]: List of user stats
         """
         r = self._make_request(
-            "post", f"/api/user/users", body={"workspace": self._workspace}
+            "post", f"/api/user/users", body={"workspace": self.workspace}
         )
         return parse_obj_as(List[UserStats], r)
 
@@ -348,7 +335,7 @@ class Mixto:
         Args:
             entry_id (str): [description]
         """
-        body = {"entry_id": entry_id, "workspace": self._workspace}
+        body = {"entry_id": entry_id, "workspace": self.workspace}
         self._make_request("delete", "/api/admin/commits", body)
         return None
 
@@ -394,14 +381,12 @@ class Mixto:
         Returns:
             List[AdminFile]: List of files
         """
-        res = self._make_request("get", f"/api/admin/files/{self._workspace}")
+        res = self._make_request("get", f"/api/admin/files/{self.workspace}")
         return parse_obj_as(List[AdminFile], res)
 
     def admin_delete_workspace_files(self) -> None:
         """Delete all workspace files"""
-        self._make_request(
-            "delete", f"/api/admin/files/{self._workspace}", isJson=False
-        )
+        self._make_request("delete", f"/api/admin/files/{self.workspace}", isJson=False)
         return None
 
     def admin_download_workspace_files(self) -> bytes:
@@ -411,7 +396,7 @@ class Mixto:
             bytes: Zip file of workspace files
         """
         res = self._make_request(
-            "get", f"/api/admin/files/{self._workspace}/download", isJson=False
+            "get", f"/api/admin/files/{self.workspace}/download", isJson=False
         )
         return res
 
@@ -468,7 +453,7 @@ class Mixto:
         Returns:
             Dict[str, Any]: Workspace archive counts
         """
-        body = {"workspace": self._workspace}
+        body = {"workspace": self.workspace}
         res = self._make_request("post", f"/api/admin/archive/workspaces", body)
         return res
 
@@ -478,7 +463,7 @@ class Mixto:
         Returns:
             Dict[str, Any]: Workspace archive counts
         """
-        body = {"workspace": self._workspace}
+        body = {"workspace": self.workspace}
         res = self._make_request("delete", f"/api/admin/archive/workspaces", body)
         return res
 
@@ -617,7 +602,7 @@ class Mixto:
         Returns:
             List[Entry]: Array of entries
         """
-        r = self._make_request("get", f"/api/entry/{self._workspace}")
+        r = self._make_request("get", f"/api/entry/{self.workspace}")
         return parse_obj_as(List[Entry], r)
 
     def add_entry(self, title: str, category: str, **kwargs) -> Entry:
@@ -634,7 +619,7 @@ class Mixto:
         """
         kwargs["title"] = title
         kwargs["category"] = category
-        r = self._make_request("post", f"/api/entry/{self._workspace}", kwargs)
+        r = self._make_request("post", f"/api/entry/{self.workspace}", kwargs)
         return Entry(**r)
 
     def batch_add_entries(self, entries: List[Dict[str, str]]) -> None:
@@ -647,7 +632,7 @@ class Mixto:
             entries (List[Dict[str, str]]): List of entries to create
         """
         body = entries
-        self._make_request("put", f"/api/entry/{self._workspace}", body)
+        self._make_request("put", f"/api/entry/{self.workspace}", body)
         return None
 
     def batch_delete_entries(self, entry_ids: List[str]) -> None:
@@ -657,7 +642,7 @@ class Mixto:
             entry_ids (List[str]): List of entry ids to delete
         """
         body = entry_ids
-        self._make_request("delete", f"/api/entry/{self._workspace}", body)
+        self._make_request("delete", f"/api/entry/{self.workspace}", body)
         return None
 
     def get_entry(self, entry_id: str) -> Entry:
@@ -669,7 +654,7 @@ class Mixto:
         Returns:
             Entry: An entry
         """
-        r = self._make_request("get", f"/api/entry/{self._workspace}/{entry_id}")
+        r = self._make_request("get", f"/api/entry/{self.workspace}/{entry_id}")
         return Entry(**r)
 
     def update_entry(self, entry_id: str, **kwargs) -> Entry:
@@ -686,7 +671,7 @@ class Mixto:
             Entry: [description]
         """
         r = self._make_request(
-            "post", f"/api/entry/{self._workspace}/{entry_id}", kwargs
+            "post", f"/api/entry/{self.workspace}/{entry_id}", kwargs
         )
         return Entry(**r)
 
@@ -699,7 +684,7 @@ class Mixto:
         Returns:
             Dict[str, int]: Count of deleted items for an entry
         """
-        return self._make_request("delete", f"/api/entry/{self._workspace}/{entry_id}")
+        return self._make_request("delete", f"/api/entry/{self.workspace}/{entry_id}")
 
     def get_entry_activities(self, entry_id: str, limit: int = 10) -> List[Activity]:
         """Get an entries activities
@@ -773,6 +758,19 @@ class Mixto:
             )
             return Commit(**r)
 
+    def get_commits(self, entry_id: str) -> List[Commit]:
+        """Get all commits for an entry
+
+        Args:
+            entry_id (str): Entry id
+
+        Returns:
+            List[Commit]: List of commits
+        """
+        r = self._make_request("get", f"/api/entry/{self.workspace}/{entry_id}")
+        entry = parse_obj_as(Entry, r)
+        return entry.commits
+
     def get_commit(self, entry_id: str, commit_id: str) -> Commit:
         """Get a specific commit
 
@@ -815,7 +813,7 @@ class Mixto:
             Commit: The commit deleted
         """
         r = self._make_request(
-            "delete", f"/api/entry/{self._workspace}/{entry_id}/commit/{commit_id}"
+            "delete", f"/api/entry/{self.workspace}/{entry_id}/commit/{commit_id}"
         )
         return Commit(**r)
 
@@ -997,7 +995,7 @@ class Mixto:
         """
         body = {"text": text}
         r = self._make_request(
-            "post", f"/api/entry/{self._workspace}/{entry_id}/description", body
+            "post", f"/api/entry/{self.workspace}/{entry_id}/description", body
         )
         return Description(**r)
 
@@ -1012,7 +1010,7 @@ class Mixto:
         """
         return self._make_request(
             "delete",
-            f"/api/entry/{self._workspace}/{entry_id}/description",
+            f"/api/entry/{self.workspace}/{entry_id}/description",
             isJson=False,
         )
 
@@ -1027,7 +1025,7 @@ class Mixto:
             List[Description]: An array of comments
         """
         r = self._make_request(
-            "get", f"/api/entry/{self._workspace}/{entry_id}/commit/{commit_id}/comment"
+            "get", f"/api/entry/{self.workspace}/{entry_id}/commit/{commit_id}/comment"
         )
         return parse_obj_as(List[Description], r)
 
@@ -1067,7 +1065,7 @@ class Mixto:
         body = {"comment_id": comment_id}
         r = self._make_request(
             "delete",
-            f"/api/entry/{self._workspace}/{entry_id}/commit/{commit_id}/comment",
+            f"/api/entry/{self.workspace}/{entry_id}/commit/{commit_id}/comment",
             body,
             isJson=False,
         )
@@ -1089,7 +1087,7 @@ class Mixto:
             query["commit_id"] = commit_id
         r = self._make_request(
             "get",
-            f"/api/entry/{self._workspace}/{entry_id}/notes",
+            f"/api/entry/{self.workspace}/{entry_id}/notes",
             None,
             queryParams=query,
         )
@@ -1107,7 +1105,7 @@ class Mixto:
         """
         body = {"note_id": note_id}
         r = self._make_request(
-            "delete", f"/api/entry/{self._workspace}/{entry_id}/notes", body, False
+            "delete", f"/api/entry/{self.workspace}/{entry_id}/notes", body, False
         )
         return None
 
@@ -1126,7 +1124,7 @@ class Mixto:
         if commit_id:
             body["commit_id"] = commit_id
         r = self._make_request(
-            "post", f"/api/entry/{self._workspace}/{entry_id}/notes", body, False
+            "post", f"/api/entry/{self.workspace}/{entry_id}/notes", body, False
         )
         return None
 
@@ -1143,7 +1141,7 @@ class Mixto:
         """
         body = {"text": text, "note_id": note_id}
         r = self._make_request(
-            "patch", f"/api/entry/{self._workspace}/{entry_id}/notes", body, False
+            "patch", f"/api/entry/{self.workspace}/{entry_id}/notes", body, False
         )
         return None
 
@@ -1171,7 +1169,7 @@ class Mixto:
         """
         body = {"workspace": kwargs}
         r = self._make_request(
-            "post", f"/api/workspace/{self._workspace}", body, isJson=False
+            "post", f"/api/workspace/{self.workspace}", body, isJson=False
         )
         return None
 
@@ -1217,7 +1215,7 @@ class Mixto:
         if category:
             query["category"] = category
         res = self._make_request(
-            "get", f"/api/archive/search/{self._workspace}", queryParams=query
+            "get", f"/api/archive/search/{self.workspace}", queryParams=query
         )
         if res is None:
             return []
@@ -1232,7 +1230,7 @@ class Mixto:
         Returns:
             List[Flag]: List of flags
         """
-        r = self._make_request("get", f"/api/entry/{self._workspace}/{entry_id}/flags")
+        r = self._make_request("get", f"/api/entry/{self.workspace}/{entry_id}/flags")
         return parse_obj_as(List[Flag], r)
 
     def delete_flag(self, entry_id: str, flag_id: str) -> None:
@@ -1247,7 +1245,7 @@ class Mixto:
         """
         body = {"flag_id": flag_id}
         r = self._make_request(
-            "delete", f"/api/entry/{self._workspace}/{entry_id}/flags", body, False
+            "delete", f"/api/entry/{self.workspace}/{entry_id}/flags", body, False
         )
         return None
 
@@ -1262,6 +1260,6 @@ class Mixto:
         """
         body = {"flag": flag}
         r = self._make_request(
-            "post", f"/api/entry/{self._workspace}/{entry_id}/flags", body, False
+            "post", f"/api/entry/{self.workspace}/{entry_id}/flags", body, False
         )
         return None
