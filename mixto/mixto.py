@@ -63,6 +63,7 @@ class Mixto:
         body: Any = {},
         isJson: bool = True,
         queryParams: dict = {},
+        files=None,
     ) -> Any:
         url = urljoin(str(self.host), uri)
         headers = {
@@ -74,7 +75,12 @@ class Mixto:
 
         try:
             res = request(
-                method.upper(), url, params=queryParams, headers=headers, data=body
+                method.upper(),
+                url,
+                params=queryParams,
+                headers=headers,
+                data=body,
+                files=files,
             )
 
             self.status = res.status_code
@@ -83,7 +89,7 @@ class Mixto:
             if isJson:
                 return res.json()
             else:
-                return body
+                return res
         except HTTPError as e:
             raise BadResponse(e.code, e.read())
 
@@ -357,9 +363,20 @@ class Mixto:
         # TODO: Implement this
         raise NotImplementedError
 
-    def admin_import_workspace_zip(self, body: bytes) -> None:
-        # TODO: Implement this
-        raise NotImplementedError
+    def admin_import_workspace_zip(self, zip_path: str) -> None:
+        """Import a workspace as a zip file
+
+        Args:
+            zip_path (str): Path to zip file
+
+        Returns:
+            None: None
+        """
+        files = {"file": open(zip_path, "rb")}
+        res = self._make_request(
+            "post", f"/api/admin/workspaces", files=files, isJson=False
+        )
+        return res
 
     def admin_delete_empty_workspaces(self) -> None:
         """Delete all empty workspaces"""
@@ -548,53 +565,76 @@ class Mixto:
         return None
 
     def admin_lock_workspace(self) -> None:
-        # TODO: Implement
-        raise NotImplementedError
+        """Lock a workspace
+
+        Returns:
+            None: None
+        """
+        self._make_request(
+            "post", f"/api/admin/workspaces/{self.workspace}/lock", isJson=False
+        )
+        return None
 
     def admin_unlock_workspace(self) -> None:
-        # TODO: Implement
-        raise NotImplementedError
+        """Unlock a workspace
+
+        Returns:
+            None: None
+        """
+        self._make_request(
+            "patch", f"/api/admin/workspaces/{self.workspace}/lock", isJson=False
+        )
+        return None
 
     def admin_workspace_public(self) -> None:
-        # TODO: Implement
-        raise NotImplementedError
+        """Make workspace public
+
+        Returns:
+            None: None
+        """
+        self._make_request(
+            "patch", f"/api/admin/workspaces/{self.workspace}/private", isJson=False
+        )
+        return None
 
     def admin_workspace_private(self) -> None:
-        # TODO: Implement
-        raise NotImplementedError
+        """Make workspace private
 
-    def fileDownload(self, hash: str, out_path: str) -> None:
-        """Download a file by hash
+        Returns:
+            None: None
+        """
+        self._make_request(
+            "post", f"/api/admin/workspaces/{self.workspace}/private", isJson=False
+        )
+        return None
+
+    def commit_download_file(self, file_hash: str, out_path: str) -> None:
+        """Download a file by file_hash
 
         Args:
-            hash (str): Hash of file
+            file_hash (str): file_hash of file
             out_path (str): Outpath path to write file into
         """
-        # TODO: Implement this
-        # with open(out_path, "w") as f:
-        #     b = self._make_request("get", "/api/files/{}".format(hash), None, False)
-        #     f.write(b)
+        res = self._make_request("get", f"/api/files/{file_hash}", isJson=False)
+        with open(out_path, "wb+") as f:
+            f.write(res.content)
         return
 
-    def fileUpload(self, entry_id: str, file_path: str) -> Commit:
-        # TODO
-        # url = urljoin(self.host, '/api/entry/{}/commit'.format(entry_id))
-        # req = Request(
-        #     method='PUT',
-        #     url=url,
-        #     data=open(str(Path().expanduser() / file_path), 'rb'),
-        #     headers={"x-api-key": self.api_key},
-        # )
-        # try:
-        #     res = urlopen(req)
-        #     body = res.read().decode()
-        #     self.status = res.getcode()
-        #     if self.status > 300:
-        #         raise BadResponse(self.status, res)
-        #     return Commit(**loads(body))
-        # except HTTPError as e:
-        #     raise BadResponse(e.code, e.read())
-        pass
+    def commit_upload_file(self, entry_id: str, file_path: str) -> Commit:
+        """Upload a file
+
+        Args:
+            entry_id (str): Entry ID
+            file_path (str): File path
+
+        Returns:
+            Commit: Commit
+        """
+        files = {"file": open(file_path, "rb")}
+        res = self._make_request(
+            "put", f"/api/entry/{self.workspace}/{entry_id}/commit", files=files
+        )
+        return parse_obj_as(Commit, res)
 
     def get_entries(self) -> List[Entry]:
         """Get an array of all entries for a workspace
