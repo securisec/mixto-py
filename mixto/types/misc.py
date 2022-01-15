@@ -63,6 +63,27 @@ CommitTypes = Literal[
     "dump", "script", "tool", "stdout", "url", "asciinema", "file", "image"
 ]
 
+EntryCategories = Literal[
+    "android",
+    "cloud",
+    "crypto",
+    "firmware",
+    "forensics",
+    "hardware",
+    "ios",
+    "misc",
+    "network",
+    "password",
+    "pcap",
+    "pwn",
+    "reversing",
+    "stego",
+    "web",
+    "none",
+    "other",
+    "scripting",
+]
+
 
 class Hit(BaseModel):
     category: Optional[str]

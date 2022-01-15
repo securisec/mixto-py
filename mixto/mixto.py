@@ -13,8 +13,10 @@ from mixto.types.entry import (
 )
 from mixto.types.misc import (
     CommitTypes,
+    EntryCategories,
     Etag,
     Hit,
+    NoticeTypes,
     ValidDataTypes,
     Workspace,
     Version,
@@ -22,7 +24,7 @@ from mixto.types.misc import (
 from urllib.error import HTTPError
 from urllib.parse import urljoin
 from pathlib import Path
-from json import loads
+import json
 from subprocess import getoutput
 from typing import Any, Dict, List, Optional, Union
 from .exceptions import BadResponse
@@ -46,7 +48,7 @@ class Mixto:
             try:
                 conf_path = str(Path().home() / ".mixto.json")
                 with open(conf_path) as f:
-                    j = loads(f.read())
+                    j = json.loads(f.read())
                     self.host = j["host"]
                     self.api_key = j["api_key"]
                     # if user did not specify workspace, use the one in the config
@@ -79,7 +81,7 @@ class Mixto:
                 url,
                 params=queryParams,
                 headers=headers,
-                data=body,
+                json=body,
                 files=files,
             )
 
@@ -275,52 +277,44 @@ class Mixto:
         self._make_request("delete", "/api/admin/entries", body)
         return None
 
-    # def adminGetConfigSlack(self) -> Config:
-    # TODO: Implement this
-    #     """Get Slack config options
+    def admin_get_config(self) -> Dict[str, Any]:
+        """Get Slack/Discord config options
 
-    #     Returns:
-    #         Config: Config options
-    #     """
-    #     r = self._make_request("get", "/api/admin/config/slack")
-    #     return Config(**r)
+        Returns:
+            Dict[str, Any]: Config options
+        """
+        r = self._make_request("get", "/api/admin/config")
+        return r
 
-    # def adminGetConfigDiscord(self) -> Config:
-    # TODO: Implement this
-    #     """Get Discord config options
+    def admin_set_config_slack(
+        self, enable: bool, workspaces: Dict[str, str]
+    ) -> Dict[str, Any]:
+        """Configure a slack channel
 
-    #     Returns:
-    #         Config: Config options
-    #     """
-    #     r = self._make_request("get", "/api/admin/config/discord")
-    #     return Config(**r)
+        Args:
+            enable (bool): Enable slack threads
+            workspaces (dict): Key is the workspace name and value is the webhook
 
-    # def adminSetConfigSlack(self, **kwargs) -> None:
-    # TODO: Implement this
-    #     """Configure a slack channel
+        Returns:
+            None: None
+        """
+        body = {"enable": enable, "workspaces": workspaces}
+        return self._make_request("post", "/api/admin/config/slack", body)
 
-    #     Args:
-    #         enable (bool): Enable Slack threads
-    #         workspaces (dict): Key is the workspace name and value is the channel
-    #         token (str): Slack token with the valid oauth permissions
+    def admin_set_config_discord(
+        self, enable: bool, workspaces: Dict[str, str]
+    ) -> Dict[str, Any]:
+        """Configure a Discord channel
 
-    #     Returns:
-    #         None: None
-    #     """
-    #     return self._make_request("post", "/api/config/slack", kwargs)
+        Args:
+            enable (bool): Enable Discord threads
+            workspaces (dict): Key is the workspace name and value is the webhook
 
-    # def adminSetConfigDiscord(self, **kwargs) -> None:
-    # TODO: Implement this
-    #     """Configure a Discord channel
-
-    #     Args:
-    #         enable (bool): Enable Discord threads
-    #         workspaces (dict): Key is the workspace name and value is the webhook
-
-    #     Returns:
-    #         None: None
-    #     """
-    #     return self._make_request("post", "/api/config/discord", kwargs)
+        Returns:
+            None: None
+        """
+        body = {"enable": enable, "workspaces": workspaces}
+        return self._make_request("post", "/api/admin/config/discord", body)
 
     def admin_health_check(self) -> None:
         """Perform an admin health check
@@ -331,9 +325,21 @@ class Mixto:
         self._make_request("get", "/api/admin", isJson=False)
         return None
 
-    def admin_delete_all(self, verify: str) -> None:
-        # TODO: Implement this
-        raise NotImplementedError
+    def admin_delete_all(
+        self, really_delete: bool, confirm: bool
+    ) -> Union[None, Dict[str, Any]]:
+        """Delete everything in instance
+
+        Args:
+            really_delete (bool): Confirm deletion
+            confirm (bool): Confirm deletion
+
+        Returns:
+            Dict[str, Any]: any
+        """
+        if not really_delete or not confirm:
+            return None
+        return self._make_request("delete", "/api/admin", isJson=False)
 
     def admin_delete_commits(self, entry_id: str) -> None:
         """Delete all commits for an entry
@@ -645,13 +651,19 @@ class Mixto:
         r = self._make_request("get", f"/api/entry/{self.workspace}")
         return parse_obj_as(List[Entry], r)
 
-    def add_entry(self, title: str, category: str, **kwargs) -> Entry:
+    def add_entry(
+        self,
+        title: str,
+        category: EntryCategories,
+        priority: NoticeTypes = "default",
+        **kwargs,
+    ) -> Entry:
         """Create an entry
 
         Args:
             title (str): Entry title
             category (str): Entry category
-            **piority (str): Priority of entry
+            piority (str): Priority of entry (optional)
             **tags (List[str]): Tags for entry
 
         Returns:
@@ -659,6 +671,7 @@ class Mixto:
         """
         kwargs["title"] = title
         kwargs["category"] = category
+        kwargs["priority"] = priority
         r = self._make_request("post", f"/api/entry/{self.workspace}", kwargs)
         return Entry(**r)
 

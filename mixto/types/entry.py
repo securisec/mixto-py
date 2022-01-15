@@ -1,6 +1,6 @@
 from typing import Optional, List, Union
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 
 
 class Base(BaseModel):
@@ -9,52 +9,49 @@ class Base(BaseModel):
     time_created: Optional[Union[str, int]]
     time_updated: Optional[Union[str, int]]
 
+    class Config:
+        extra = Extra.allow
 
-class Note(Base):
+
+class RequiredIDs(Base):
+    entry_id: Optional[str]
+    commit_id: Optional[str]
     workspace: Optional[str]
+
+
+class Note(RequiredIDs):
     text: Optional[str]
     title: Optional[str]
-    entry_id: Optional[str]
     note_id: Optional[str]
-    commit_id: Optional[str]
 
 
 class Description(Base):
     text: Optional[str]
     entry_id: Optional[str]
-    comment_id: Optional[UUID] = None
-    commit_id: Optional[UUID] = None
-    priority: Optional[str] = None
+    comment_id: Optional[str]
+    workspace: Optional[str]
+    priority: Optional[str]
 
 
 class Meta(BaseModel):
-    file_name: Optional[str] = None
-    hash: Optional[str] = None
-    mime: Optional[str] = None
-    size: Optional[int] = None
-    slack_channel: Optional[str] = None
-    slack_ts: Optional[str] = None
+    file_name: Optional[str]
+    hash: Optional[str]
+    mime: Optional[str]
+    size: Optional[int]
+    slack_channel: Optional[str]
+    slack_ts: Optional[str]
 
 
-class Like(Base):
+class Like(RequiredIDs):
     like_id: Optional[str]
-    commit_id: Optional[str]
-    entry_id: Optional[str]
-    workspace: Optional[str]
 
 
-class CommitTag(Base):
+class CommitTag(RequiredIDs):
     tag_id: Optional[str]
-    commit_id: Optional[str]
-    entry_id: Optional[str]
-    workspace: Optional[str]
     text: Optional[str]
 
 
-class Commit(Base):
-    commit_id: Optional[UUID]
-    entry_id: Optional[str]
-    workspace: Optional[str]
+class Commit(RequiredIDs):
     type: Optional[str]
     title: Optional[str]
     data: Optional[str]
