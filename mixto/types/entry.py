@@ -58,6 +58,7 @@ class Commit(RequiredIDs):
     marked: Optional[bool]
     locked: Optional[bool]
     size: Optional[int]
+    activity_count: Optional[int] = 0
     comments: Optional[List[Description]]
     likes: Optional[List[Like]]
     tags: Optional[List[CommitTag]]

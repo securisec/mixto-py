@@ -755,6 +755,21 @@ class Mixto:
         )
         return parse_obj_as(List[Activity], res)
 
+    def get_commit_activities(self, entry_id: str, commit_id: str) -> List[Activity]:
+        """Get a commits activities
+
+        Args:
+            entry_id (str): A valid entry ID
+            commit_id (str): A valid commit ID
+
+        Returns:
+            List[Activity]: List of activities
+        """
+        res = self._make_request(
+            "get", f"/api/entry/{self.workspace}/{entry_id}/commit/{commit_id}/activity"
+        )
+        return parse_obj_as(List[Activity], res)
+
     def add_commit(self, entry_id: str, title: str, data: Any, **kwargs) -> Commit:
         """Add a commit to an entry
 
