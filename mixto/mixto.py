@@ -739,6 +739,19 @@ class Mixto:
         """
         return self._make_request("delete", f"/api/entry/{self.workspace}/{entry_id}")
 
+    def get_workspace_activities(self, limit: int = 10) -> List[Activity]:
+        """Get workspace activities
+
+        Args:
+            limit (int, optional): Number of activities to get. Defaults to 10.
+
+        Returns:
+            List[Activity]: List of activities
+        """
+        query = {"limit": limit, "workspace": self.workspace}
+        res = self._make_request("get", f"/api/misc/activity", queryParams=query)
+        return parse_obj_as(List[Activity], res)
+
     def get_entry_activities(self, entry_id: str, limit: int = 10) -> List[Activity]:
         """Get an entries activities
 
