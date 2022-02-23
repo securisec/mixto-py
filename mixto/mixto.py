@@ -376,7 +376,7 @@ class Mixto:
             bytes: Exported workspace as a zip file.
         """
         r = self._make_request(
-            "get", f"/api/admin/workspaces/{workspace}", isJson=False
+            "get", f"/api/admin/workspaces/{workspace}/export", isJson=False
         )
         return r
 
@@ -395,7 +395,7 @@ class Mixto:
         """
         files = {"file": open(zip_path, "rb")}
         res = self._make_request(
-            "post", f"/api/admin/workspaces", files=files, isJson=False
+            "post", f"/api/admin/workspaces/import", files=files, isJson=False
         )
         return res
 
@@ -1161,6 +1161,26 @@ class Mixto:
             isJson=False,
         )
         return None
+
+    def get_note(self, entry_id: str, note_id: str) -> Note:
+        """Get a single note by id
+
+        Args:
+            entry_id (str): A valid entry id
+            note_id (str): A valid note id
+
+        Returns:
+            Note: Note object
+        """
+        query = {}
+        query["note_id"] = note_id
+        r = self._make_request(
+            "get",
+            f"/api/entry/{self.workspace}/{entry_id}/notes",
+            None,
+            queryParams=query,
+        )
+        return Note(**r)
 
     def get_notes(self, entry_id: str, commit_id: str = None) -> List[Note]:
         """Get an array of all notes for an entry. If commit_id is specified,
