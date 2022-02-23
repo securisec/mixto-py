@@ -267,16 +267,6 @@ class Mixto:
         """
         return self._make_request("get", "/api/admin/config")
 
-    def admin_delete_workspace(self, workspace_id: str) -> None:
-        """Delete a workspace
-
-        Args:
-            workspace_id (str): Workspace ID
-        """
-        body = {"workspace": workspace_id}
-        self._make_request("delete", "/api/admin/entries", body)
-        return None
-
     def admin_get_config(self) -> Dict[str, Any]:
         """Get Slack/Discord config options
 
@@ -351,6 +341,31 @@ class Mixto:
         self._make_request("delete", "/api/admin/commits", body)
         return None
 
+    def admin_delete_workspace(self, workspace_id: str) -> None:
+        """Delete a workspace
+
+        Args:
+            workspace_id (str): Workspace ID
+        """
+        body = {"workspace": workspace_id}
+        self._make_request("delete", "/api/admin/workspace", body)
+        return None
+
+    def admin_delete_entries(self, workspace_id: str) -> None:
+        """Delete entries for a workspace
+
+        Args:
+            workspace_id (str): Workspace ID
+        """
+        body = {"workspace": workspace_id}
+        self._make_request("delete", "/api/admin/entries", body)
+        return None
+
+    def admin_delete_empty_workspaces(self) -> None:
+        """Delete all empty workspaces"""
+        self._make_request("delete", "/api/admin/workspaces", isJson=False)
+        return None
+
     def admin_export_workspace(self, workspace: str) -> bytes:
         """Export a workspace
 
@@ -383,11 +398,6 @@ class Mixto:
             "post", f"/api/admin/workspaces", files=files, isJson=False
         )
         return res
-
-    def admin_delete_empty_workspaces(self) -> None:
-        """Delete all empty workspaces"""
-        self._make_request("delete", "/api/admin/workspaces", isJson=False)
-        return None
 
     def admin_get_files(self) -> List[AdminFile]:
         """Get a list of instance files
