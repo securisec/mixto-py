@@ -3,8 +3,8 @@ from pathlib import Path
 from urllib.parse import urljoin
 from typing import Optional, Dict, Any, Union
 from .lib.gql import GraphqlClient
+from .types import MixtoConfig
 from requests import Session
-from .exceptions import Error
 
 
 class Mixto:
@@ -14,11 +14,11 @@ class Mixto:
         self.host = host
         self.api_key = api_key
         self.config_file = config_file
-        self.config = {}
+        self.config: Union[MixtoConfig, Any] = {}
 
         if not any([self.host, self.api_key]):
-            self.config = json.loads(self.config_file.read_text())
-            self.host, self.api_key = self.config["host"], self.config["api_key"]
+            self.config = MixtoConfig(**json.loads(self.config_file.read_text()))
+            self.host, self.api_key = self.config.host, self.config.api_key
             if not any([self.host, self.api_key]):
                 raise ValueError("Host and api key not specified")
 
@@ -95,7 +95,7 @@ class Mixto:
         self, workspace_id: str = "", include_commits: bool = False
     ):
         if workspace_id == "":
-            workspace_id = self.config["workspace_id"]
+            workspace_id = self.config.workspace_id
         return self.rest_client.post(
             self._make_url("/api/v1/workspace"),
             json={"workspace_id": workspace_id, "include_commits": include_commits},
@@ -114,5 +114,45 @@ class Mixto:
         pass
 
     def admin_workspace_import(self):
+        # TODO 🔥
+        pass
+
+    def admin_reindex_workspace(self):
+        # TODO 🔥
+        pass
+
+    def admin_reindex_all_workspaces(self):
+        # TODO 🔥
+        pass
+
+    def admin_get_workspace_backups(self):
+        # TODO 🔥
+        pass
+
+    def admin_backup_workspace(self):
+        # TODO 🔥
+        pass
+
+    def admin_restore_workspace(self):
+        # TODO 🔥
+        pass
+
+    def commit_add(self):
+        # TODO 🔥
+        pass
+
+    def file_upload(self):
+        # TODO 🔥
+        pass
+
+    def file_get(self):
+        # TODO 🔥
+        pass
+
+    def admin_file_get_all(self):
+        # TODO 🔥
+        pass
+
+    def admin_file_delete(self):
         # TODO 🔥
         pass

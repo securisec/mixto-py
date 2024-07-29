@@ -3,6 +3,14 @@ from pydantic import BaseModel, Extra
 from uuid import UUID
 
 
+class MixtoConfig(BaseModel, extra=Extra.allow):
+    workspace_id: str
+    workspace_name: Optional[str]
+    api_key: str
+    host: str
+    instance: Optional[str]
+
+
 class sharedBase(BaseModel, extra=Extra.allow):
     updated_at: Optional[str]
     created_at: Optional[str]
